@@ -1,4 +1,3 @@
-
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -7,28 +6,417 @@ import os
 
 
 # ============================================================
-# PAGE CONFIGURATION
+# PAGE CONFIG
 # ============================================================
 
 st.set_page_config(
-    page_title="Wikipedia Search Agent",
-    page_icon="🤖",
-    layout="centered"
+    page_title="WikiAgent",
+    page_icon="✦",
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 
 # ============================================================
-# INITIALIZATION
+# CUSTOM CSS — AI SaaS THEME
+# ============================================================
+
+st.markdown("""
+<style>
+
+/* ---------- GLOBAL ---------- */
+
+.stApp {
+    background:
+        radial-gradient(
+            circle at 50% -10%,
+            rgba(124, 58, 237, 0.18),
+            transparent 35%
+        ),
+        #08080d;
+    color: #f5f5f7;
+}
+
+.block-container {
+    max-width: 1100px;
+    padding-top: 1.5rem;
+    padding-bottom: 5rem;
+}
+
+
+/* ---------- HEADER ---------- */
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0 25px 0;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #8b5cf6,
+            #6366f1
+        );
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 18px;
+    font-weight: 700;
+
+    box-shadow:
+        0 0 25px rgba(139, 92, 246, 0.35);
+}
+
+.brand-name {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+}
+
+.brand-badge {
+    font-size: 10px;
+    padding: 4px 7px;
+    border-radius: 20px;
+
+    background: rgba(139, 92, 246, 0.12);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+
+    color: #b9a2ff;
+}
+
+
+/* ---------- HERO ---------- */
+
+.hero {
+    text-align: center;
+    padding: 90px 20px 45px 20px;
+}
+
+.hero-badge {
+    display: inline-block;
+
+    padding: 7px 13px;
+    border-radius: 30px;
+
+    background: rgba(139, 92, 246, 0.10);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+
+    color: #bca7ff;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    margin-bottom: 22px;
+}
+
+.hero h1 {
+    font-size: clamp(42px, 6vw, 72px);
+
+    line-height: 1.02;
+
+    letter-spacing: -3px;
+
+    margin: 0;
+
+    font-weight: 800;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ffffff 20%,
+            #c4b5fd 55%,
+            #818cf8 100%
+        );
+
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero p {
+    max-width: 620px;
+
+    margin: 20px auto 0 auto;
+
+    color: #9999a7;
+
+    font-size: 17px;
+
+    line-height: 1.6;
+}
+
+
+/* ---------- FEATURE CARDS ---------- */
+
+.feature-card {
+    height: 100%;
+
+    padding: 22px;
+
+    border-radius: 16px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,0.045),
+            rgba(255,255,255,0.018)
+        );
+
+    border: 1px solid rgba(255,255,255,0.08);
+
+    transition: 0.2s ease;
+}
+
+.feature-icon {
+    font-size: 22px;
+    margin-bottom: 12px;
+}
+
+.feature-title {
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.feature-text {
+    color: #888895;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+
+/* ---------- SUGGESTIONS ---------- */
+
+.section-label {
+    color: #777784;
+
+    font-size: 12px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 1.5px;
+
+    font-weight: 700;
+
+    margin: 35px 0 14px 0;
+}
+
+
+/* ---------- CHAT ---------- */
+
+.user-message {
+    display: flex;
+    justify-content: flex-end;
+
+    margin: 25px 0;
+}
+
+.user-bubble {
+    max-width: 75%;
+
+    padding: 14px 18px;
+
+    border-radius: 18px 18px 5px 18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #6366f1
+        );
+
+    color: white;
+
+    box-shadow:
+        0 8px 30px rgba(99,102,241,0.18);
+}
+
+.ai-label {
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    color: #b7a1ff;
+
+    font-size: 13px;
+
+    font-weight: 700;
+
+    margin-bottom: 12px;
+}
+
+.ai-dot {
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+
+    background: #a78bfa;
+
+    box-shadow:
+        0 0 12px #8b5cf6;
+}
+
+.answer-text {
+    color: #e5e5eb;
+
+    font-size: 16px;
+
+    line-height: 1.75;
+}
+
+
+/* ---------- SOURCE ---------- */
+
+.source-card {
+    margin-top: 22px;
+
+    padding: 18px;
+
+    border-radius: 15px;
+
+    background:
+        rgba(255,255,255,0.025);
+
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.source-label {
+    font-size: 10px;
+
+    letter-spacing: 1.3px;
+
+    color: #777784;
+
+    text-transform: uppercase;
+
+    margin-bottom: 8px;
+}
+
+.source-title {
+    font-weight: 700;
+
+    color: #eeeeef;
+
+    margin-bottom: 5px;
+}
+
+.source-link {
+    color: #a78bfa;
+
+    text-decoration: none;
+
+    font-size: 13px;
+}
+
+
+/* ---------- STATUS ---------- */
+
+.status-card {
+    padding: 14px 18px;
+
+    border-radius: 12px;
+
+    background: rgba(139,92,246,0.07);
+
+    border: 1px solid rgba(139,92,246,0.15);
+
+    color: #aaa3bb;
+
+    font-size: 13px;
+}
+
+
+/* ---------- SIDEBAR ---------- */
+
+section[data-testid="stSidebar"] {
+    background: #0c0c12;
+    border-right: 1px solid rgba(255,255,255,0.07);
+}
+
+
+/* ---------- CHAT INPUT ---------- */
+
+.stChatInput {
+    border-color: rgba(139,92,246,0.3) !important;
+}
+
+
+/* ---------- BUTTONS ---------- */
+
+.stButton > button {
+    border-radius: 12px;
+
+    border: 1px solid rgba(255,255,255,0.08);
+
+    background: rgba(255,255,255,0.035);
+
+    color: #dcdce5;
+
+    transition: 0.2s ease;
+}
+
+.stButton > button:hover {
+    border-color: rgba(139,92,246,0.5);
+
+    background: rgba(139,92,246,0.10);
+
+    color: white;
+}
+
+
+/* ---------- MOBILE ---------- */
+
+@media (max-width: 768px) {
+
+    .hero {
+        padding-top: 50px;
+    }
+
+    .hero h1 {
+        letter-spacing: -2px;
+    }
+
+    .user-bubble {
+        max-width: 90%;
+    }
+
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
+# INITIALIZE
 # ============================================================
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+if not GEMINI_API_KEY:
+    st.error("Gemini API key is not configured.")
+    st.stop()
 
 client = genai.Client(
     api_key=GEMINI_API_KEY
 )
 
 wiki = wikipediaapi.Wikipedia(
-    user_agent="WikipediaSearchAgent/1.0",
+    user_agent="WikiAgent/1.0",
     language="en"
 )
 
@@ -51,7 +439,7 @@ def wikipedia_search_candidates(query, limit=5):
 
     for title in search_results.pages:
 
-        page = wiki.page(title);
+        page = wiki.page(title)
 
         if page.exists():
 
@@ -68,7 +456,10 @@ def wikipedia_search_candidates(query, limit=5):
 # SELECT BEST ARTICLE
 # ============================================================
 
-def choose_best_wikipedia_article(question, candidates):
+def choose_best_wikipedia_article(
+    question,
+    candidates
+):
 
     if not candidates:
         return None
@@ -79,9 +470,15 @@ def choose_best_wikipedia_article(question, candidates):
 
         candidate_text += f"""
 Candidate {i + 1}
-Title: {article['title']}
-Summary: {article['summary']}
-URL: {article['url']}
+
+Title:
+{article['title']}
+
+Summary:
+{article['summary']}
+
+URL:
+{article['url']}
 
 """
 
@@ -101,7 +498,6 @@ Choose the single most relevant article.
 Return ONLY the candidate number.
 """
 
-
     response = client.models.generate_content(
         model="gemini-3.1-flash-lite",
         contents=prompt
@@ -109,12 +505,16 @@ Return ONLY the candidate number.
 
     try:
 
-        number = int(response.text.strip())
+        number = int(
+            response.text.strip()
+        )
 
         if 1 <= number <= len(candidates):
+
             return candidates[number - 1]
 
     except:
+
         pass
 
     return candidates[0]
@@ -137,7 +537,8 @@ def smart_wikipedia_search(query):
 
             return {
                 "status": "error",
-                "message": "No relevant Wikipedia article found."
+                "message":
+                "No relevant Wikipedia article found."
             }
 
         selected = choose_best_wikipedia_article(
@@ -149,7 +550,8 @@ def smart_wikipedia_search(query):
 
             return {
                 "status": "error",
-                "message": "Could not select a relevant article."
+                "message":
+                "Could not select a relevant article."
             }
 
         return {
@@ -163,21 +565,25 @@ def smart_wikipedia_search(query):
 
         return {
             "status": "error",
-            "message": "Wikipedia search failed.",
+            "message":
+            "Wikipedia search failed.",
             "details": str(e)
         }
 
 
 # ============================================================
-# GEMINI TOOL
+# TOOL DEFINITION
 # ============================================================
 
 wikipedia_tool = {
-    "name": "smart_wikipedia_search",
 
-    "description": """
-    Searches Wikipedia for information relevant to
-    the user's question and selects the most
+    "name":
+    "smart_wikipedia_search",
+
+    "description":
+    """
+    Searches Wikipedia for information relevant
+    to the user's question and selects the most
     appropriate article.
     """,
 
@@ -188,23 +594,27 @@ wikipedia_tool = {
         "properties": {
 
             "query": {
+
                 "type": "string",
+
                 "description":
                 "The topic or question to search on Wikipedia."
+
             }
 
         },
 
-        "required": ["query"]
+        "required":
+        ["query"]
     }
 }
+
 
 tools = types.Tool(
     function_declarations=[
         wikipedia_tool
     ]
 )
-
 
 config = types.GenerateContentConfig(
     tools=[tools]
@@ -217,16 +627,14 @@ config = types.GenerateContentConfig(
 
 def build_conversation_context(messages):
 
-    if not messages:
-        return ""
-
     context = ""
 
     for message in messages:
 
-        role = message["role"].capitalize()
-
-        context += f"{role}: {message['content']}\n\n"
+        context += (
+            f"{message['role'].capitalize()}: "
+            f"{message['content']}\n\n"
+        )
 
     return context
 
@@ -235,72 +643,25 @@ def build_conversation_context(messages):
 # AI AGENT
 # ============================================================
 
-def wikipedia_agent(question, messages):
+def wikipedia_agent(
+    question,
+    messages
+):
 
-    conversation_context = build_conversation_context(messages)
+    conversation_context = \
+        build_conversation_context(messages)
 
     prompt = f"""
-You are a Wikipedia Search Agent.
+You are WikiAgent, an AI-powered Wikipedia
+research assistant.
 
-Your job is to answer the user's question using
-relevant Wikipedia information.
+Use the conversation history to understand
+follow-up questions.
 
-IMPORTANT:
-- Use the conversation history to understand follow-up questions.
-- If the user says "he", "she", "it", "they", "his", "her", etc.,
-  determine what they refer to from the conversation.
-- Use the Wikipedia search tool when factual Wikipedia information
-  is needed.
-- Do not invent facts.
-- Base factual answers on the retrieved Wikipedia information.
+If factual Wikipedia information is needed,
+use the Wikipedia search tool.
 
-Conversation history:
-
-{conversation_context}
-
-Current user question:
-
-{question}
-"""
-
-    # First Gemini call
-    response = client.models.generate_content(
-        model="gemini-3.1-flash-lite",
-        contents=prompt,
-        config=config
-    )
-
-    # Gemini doesn't need Wikipedia
-    if not response.function_calls:
-
-        return {
-            "answer": response.text,
-            "source": None
-        }
-
-    # Gemini wants to use Wikipedia
-    call = response.function_calls[0]
-
-    query = call.args["query"]
-
-    # Execute Wikipedia tool
-    result = smart_wikipedia_search(query)
-
-    if result["status"] == "error":
-
-        return {
-            "answer": result["message"],
-            "source": None
-        }
-
-    # Send Wikipedia result back to Gemini
-    function_response = types.Part.from_function_response(
-        name=call.name,
-        response=result
-    )
-
-    final_prompt = f"""
-You are a Wikipedia Search Agent.
+Do not invent facts.
 
 Conversation history:
 
@@ -309,28 +670,83 @@ Conversation history:
 Current question:
 
 {question}
+"""
 
-Wikipedia information retrieved:
+    response = client.models.generate_content(
 
-Title:
-{result["title"]}
+        model="gemini-3.1-flash-lite",
 
-Summary:
-{result["summary"]}
+        contents=prompt,
 
-Source:
-{result["url"]}
+        config=config
+    )
 
-Answer the user's question using the Wikipedia
-information above.
+
+    if not response.function_calls:
+
+        return {
+            "answer": response.text,
+            "source": None
+        }
+
+
+    call = response.function_calls[0]
+
+    query = call.args["query"]
+
+
+    result = smart_wikipedia_search(query)
+
+
+    if result["status"] == "error":
+
+        return {
+            "answer": result["message"],
+            "source": None
+        }
+
+
+    function_response = \
+        types.Part.from_function_response(
+
+            name=call.name,
+
+            response=result
+
+        )
+
+
+    final_prompt = f"""
+You are WikiAgent.
+
+Answer the user's question using
+the retrieved Wikipedia information.
+
+Conversation:
+
+{conversation_context}
+
+Question:
+
+{question}
+
+Wikipedia article:
+
+{result['title']}
+
+Wikipedia information:
+
+{result['summary']}
 
 Rules:
-- Give a clear and natural answer.
-- Use the conversation context.
-- Resolve pronouns such as "he", "she", "it", or "they".
+
+- Give a clear answer.
+- Use conversation context.
+- Resolve pronouns such as he/she/they.
 - Do not invent facts.
-- If the information is insufficient, say so.
+- If information is insufficient, say so.
 """
+
 
     final_response = client.models.generate_content(
 
@@ -339,232 +755,91 @@ Rules:
         contents=[
 
             types.Content(
+
                 role="user",
+
                 parts=[
+
                     types.Part.from_text(
                         text=final_prompt
                     )
+
                 ]
+
             ),
 
             response.candidates[0].content,
 
             types.Content(
+
                 role="user",
-                parts=[function_response]
+
+                parts=[
+
+                    function_response
+
+                ]
+
             )
+
         ],
 
         config=config
     )
 
+
     return {
-        "answer": final_response.text,
+
+        "answer":
+        final_response.text,
 
         "source": {
-            "title": result["title"],
-            "url": result["url"]
+
+            "title":
+            result["title"],
+
+            "url":
+            result["url"]
+
         }
+
     }
 
 
 # ============================================================
-# USER INTERFACE
-# ============================================================
-
-st.markdown(
-    '<div class="main-title">🤖 Wikipedia Search Agent</div>',
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    '<div class="subtitle">'
-    'AI-powered research assistant using Wikipedia + Gemini'
-    '</div>',
-    unsafe_allow_html=True
-)
-
-st.divider()
-
-
-# ============================================================
-# SESSION MEMORY
+# SESSION STATE
 # ============================================================
 
 if "messages" not in st.session_state:
 
     st.session_state.messages = []
 
-if len(st.session_state.messages) == 0:
 
-    st.markdown("""
-    <div class="info-card">
+# ============================================================
+# TOP BAR
+# ============================================================
 
-    ### 👋 Welcome!
+st.markdown("""
+<div class="topbar">
 
-    Ask me a question and I'll search Wikipedia,
-    identify the most relevant information, and
-    generate a clear answer.
+    <div class="brand">
 
-    **I can also understand follow-up questions.**
+        <div class="brand-icon">
+            ✦
+        </div>
+
+        <div class="brand-name">
+            WikiAgent
+        </div>
+
+        <div class="brand-badge">
+            AI RESEARCH
+        </div>
 
     </div>
-    """, unsafe_allow_html=True)
 
-    st.markdown("### 💡 Try an example")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        if st.button(
-            "🧠 Who was Alan Turing?",
-            use_container_width=True
-        ):
-
-            st.session_state.example_question = \
-                "Who was Alan Turing?"
-
-    with col2:
-
-        if st.button(
-            "🤖 What is AI?",
-            use_container_width=True
-        ):
-
-            st.session_state.example_question = \
-                "What is artificial intelligence?"
-
-    col3, col4 = st.columns(2)
-
-    with col3:
-
-        if st.button(
-            "📞 Who invented the telephone?",
-            use_container_width=True
-        ):
-
-            st.session_state.example_question = \
-                "Who invented the telephone?"
-
-    with col4:
-
-        if st.button(
-            "🌌 What is relativity?",
-            use_container_width=True
-        ):
-
-            st.session_state.example_question = \
-                "What is the theory of relativity?"
-
-
-# ============================================================
-# DISPLAY CHAT HISTORY
-# ============================================================
-
-for message in st.session_state.messages:
-
-    with st.chat_message(message["role"]):
-
-        st.markdown(message["content"])
-
-        if message.get("source"):
-
-            st.markdown("---")
-
-            st.markdown(
-                f"""
-                <div class="source-card">
-
-                📚 <b>Wikipedia Source</b><br><br>
-
-                <b>{message['source']['title']}</b><br>
-
-                <a href="{message['source']['url']}" target="_blank">
-                🔗 Open Wikipedia Article
-                </a>
-
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-
-# ============================================================
-# CHAT INPUT
-# ============================================================
-
-question = st.chat_input(
-    "Ask anything about a topic..."
-)
-
-if "example_question" in st.session_state:
-
-    question = st.session_state.example_question
-
-    del st.session_state.example_question
-
-
-if question:
-
-    # Display user question
-    with st.chat_message("user"):
-
-        st.markdown(question)
-
-    # Generate answer
-    with st.chat_message("assistant"):
-
-        with st.spinner(
-            "🔎 Searching Wikipedia and thinking..."
-        ):
-
-            result = wikipedia_agent(
-                question,
-                st.session_state.messages
-            )
-
-        st.markdown(result["answer"])
-
-        if result["source"]:
-
-            st.markdown("---")
-
-            st.markdown(
-                f"""
-                <div class="source-card">
-
-                📚 <b>Wikipedia Source</b><br><br>
-
-                <b>{result['source']['title']}</b><br>
-
-                <a href="{result['source']['url']}" target="_blank">
-                🔗 Open Wikipedia Article
-                </a>
-
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-    # Save conversation
-    st.session_state.messages.append({
-
-        "role": "user",
-
-        "content": question
-
-    })
-
-    st.session_state.messages.append({
-
-        "role": "assistant",
-
-        "content": result["answer"],
-
-        "source": result["source"]
-
-    })
+</div>
+""", unsafe_allow_html=True)
 
 
 # ============================================================
@@ -573,47 +848,442 @@ if question:
 
 with st.sidebar:
 
-    st.header("🤖 Wikipedia Agent")
+    st.markdown("## ✦ WikiAgent")
 
-    st.write(
-        """
-        An AI-powered research assistant that
-        searches Wikipedia and generates answers
-        using Gemini.
-        """
+    st.caption(
+        "AI-powered Wikipedia research assistant"
     )
 
     st.divider()
 
-    st.subheader("⚙️ Agent Capabilities")
+    st.markdown("### Capabilities")
 
-    st.write("🔎 Wikipedia Search")
-    st.write("🧠 AI Article Selection")
-    st.write("💬 Conversation Memory")
-    st.write("📚 Source Attribution")
-    st.write("🤖 Gemini Tool Calling")
+    st.markdown("""
+    🔎 **Smart Wikipedia Search**
 
-    st.divider()
+    🧠 **AI Article Selection**
 
-    st.subheader("💡 Example Topics")
+    💬 **Conversation Memory**
 
-    st.write("• Artificial Intelligence")
+    📚 **Source Attribution**
 
-    st.write("• Computer Science")
-
-    st.write("• History")
-
-    st.write("• Scientists")
-
-    st.write("• Technology")
+    🤖 **Gemini Tool Calling**
+    """)
 
     st.divider()
 
     if st.button(
-        "🗑️ Clear Conversation",
+        "🗑️ Clear conversation",
         use_container_width=True
     ):
 
         st.session_state.messages = []
 
         st.rerun()
+
+
+# ============================================================
+# EMPTY STATE / HERO
+# ============================================================
+
+if not st.session_state.messages:
+
+    st.markdown("""
+    <div class="hero">
+
+        <div class="hero-badge">
+            ✦ AI-POWERED KNOWLEDGE SEARCH
+        </div>
+
+        <h1>
+            Explore knowledge.<br>
+            Understand anything.
+        </h1>
+
+        <p>
+            Ask a question in natural language.
+            WikiAgent searches Wikipedia, evaluates
+            relevant information, and gives you a
+            clear answer with its source.
+        </p>
+
+    </div>
+    """, unsafe_allow_html=True)
+
+
+    # --------------------------------------------------------
+    # FEATURE CARDS
+    # --------------------------------------------------------
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+
+        st.markdown("""
+        <div class="feature-card">
+
+            <div class="feature-icon">
+                🔎
+            </div>
+
+            <div class="feature-title">
+                Search
+            </div>
+
+            <div class="feature-text">
+                Search across relevant Wikipedia
+                articles using natural language.
+            </div>
+
+        </div>
+        """, unsafe_allow_html=True)
+
+
+    with col2:
+
+        st.markdown("""
+        <div class="feature-card">
+
+            <div class="feature-icon">
+                🧠
+            </div>
+
+            <div class="feature-title">
+                Understand
+            </div>
+
+            <div class="feature-text">
+                AI evaluates search results and
+                selects the most relevant article.
+            </div>
+
+        </div>
+        """, unsafe_allow_html=True)
+
+
+    with col3:
+
+        st.markdown("""
+        <div class="feature-card">
+
+            <div class="feature-icon">
+                📚
+            </div>
+
+            <div class="feature-title">
+                Cite
+            </div>
+
+            <div class="feature-text">
+                Every research answer includes
+                its Wikipedia source.
+            </div>
+
+        </div>
+        """, unsafe_allow_html=True)
+
+
+    # --------------------------------------------------------
+    # EXAMPLES
+    # --------------------------------------------------------
+
+    st.markdown(
+        '<div class="section-label">Try asking</div>',
+        unsafe_allow_html=True
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        if st.button(
+            "🧠  Who was Alan Turing?",
+            use_container_width=True
+        ):
+
+            st.session_state.example_question = \
+                "Who was Alan Turing?"
+
+            st.rerun()
+
+
+    with col2:
+
+        if st.button(
+            "🤖  What is artificial intelligence?",
+            use_container_width=True
+        ):
+
+            st.session_state.example_question = \
+                "What is artificial intelligence?"
+
+            st.rerun()
+
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        if st.button(
+            "📞  Who invented the telephone?",
+            use_container_width=True
+        ):
+
+            st.session_state.example_question = \
+                "Who invented the telephone?"
+
+            st.rerun()
+
+
+    with col2:
+
+        if st.button(
+            "🌌  Explain the theory of relativity",
+            use_container_width=True
+        ):
+
+            st.session_state.example_question = \
+                "Explain the theory of relativity"
+
+            st.rerun()
+
+
+# ============================================================
+# DISPLAY CHAT HISTORY
+# ============================================================
+
+for message in st.session_state.messages:
+
+    if message["role"] == "user":
+
+        st.markdown(
+            '<div class="user-message">'
+            f'<div class="user-bubble">'
+            f'{message["content"]}'
+            '</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    else:
+
+        st.markdown("""
+        <div class="ai-label">
+
+            <div class="ai-dot"></div>
+
+            WikiAgent
+
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(
+            f'<div class="answer-text">'
+            f'{message["content"]}'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+        if message.get("source"):
+
+            source = message["source"]
+
+            st.markdown(
+                f"""
+                <div class="source-card">
+
+                    <div class="source-label">
+                        Primary source
+                    </div>
+
+                    <div class="source-title">
+                        📚 {source["title"]}
+                    </div>
+
+                    <div>
+                        <span
+                        style="color:#777784;
+                        font-size:12px;">
+                        Wikipedia
+                        </span>
+                    </div>
+
+                    <br>
+
+                    <a
+                    class="source-link"
+                    href="{source["url"]}"
+                    target="_blank">
+
+                    Open Wikipedia article ↗
+
+                    </a>
+
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+
+# ============================================================
+# INPUT
+# ============================================================
+
+example_question = \
+    st.session_state.pop(
+        "example_question",
+        None
+    )
+
+
+question = st.chat_input(
+    "Ask WikiAgent anything..."
+)
+
+
+if example_question:
+
+    question = example_question
+
+
+# ============================================================
+# PROCESS QUESTION
+# ============================================================
+
+if question:
+
+    # User message
+
+    st.markdown(
+        '<div class="user-message">'
+        f'<div class="user-bubble">'
+        f'{question}'
+        '</div>'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+
+    # Save temporarily for context
+
+    current_messages = \
+        st.session_state.messages.copy()
+
+
+    # Agent status
+
+    with st.status(
+        "✦ WikiAgent is working...",
+        expanded=True
+    ):
+
+        st.write(
+            "🤔 Understanding your question..."
+        )
+
+        st.write(
+            "🔎 Searching Wikipedia..."
+        )
+
+        st.write(
+            "🧠 Evaluating relevant information..."
+        )
+
+        result = wikipedia_agent(
+            question,
+            current_messages
+        )
+
+        st.write(
+            "✍️ Preparing your answer..."
+        )
+
+
+    # Display answer
+
+    st.markdown("""
+    <div class="ai-label">
+
+        <div class="ai-dot"></div>
+
+        WikiAgent
+
+    </div>
+    """, unsafe_allow_html=True)
+
+
+    st.markdown(
+        f'<div class="answer-text">'
+        f'{result["answer"]}'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
+
+    # Source
+
+    if result["source"]:
+
+        source = result["source"]
+
+        st.markdown(
+            f"""
+            <div class="source-card">
+
+                <div class="source-label">
+                    Primary source
+                </div>
+
+                <div class="source-title">
+                    📚 {source["title"]}
+                </div>
+
+                <div style="color:#777784;
+                font-size:12px;">
+                    Wikipedia
+                </div>
+
+                <br>
+
+                <a
+                class="source-link"
+                href="{source["url"]}"
+                target="_blank">
+
+                Open Wikipedia article ↗
+
+                </a>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+    # Save conversation
+
+    st.session_state.messages.append({
+
+        "role":
+        "user",
+
+        "content":
+        question
+
+    })
+
+
+    st.session_state.messages.append({
+
+        "role":
+        "assistant",
+
+        "content":
+        result["answer"],
+
+        "source":
+        result["source"]
+
+    })
+
+    st.rerun()
