@@ -160,125 +160,124 @@ st.markdown("""
 }
 
 
-/* ---------- FEATURE CARDS ---------- */
+# --------------------------------------------------------
+# FEATURE CARDS
+# --------------------------------------------------------
 
-.feature-card {
-    height: 100%;
+st.html("""
+<div style="
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:16px;
+    margin:25px 0 35px 0;
+">
 
-    padding: 22px;
-
-    border-radius: 16px;
-
-    background:
-        linear-gradient(
+    <div style="
+        padding:24px;
+        border-radius:18px;
+        background:linear-gradient(
             145deg,
-            rgba(255,255,255,0.045),
+            rgba(255,255,255,0.055),
             rgba(255,255,255,0.018)
         );
+        border:1px solid rgba(255,255,255,0.09);
+    ">
+        <div style="
+            font-size:25px;
+            margin-bottom:14px;
+        ">🔎</div>
 
-    border: 1px solid rgba(255,255,255,0.08);
+        <div style="
+            font-size:17px;
+            font-weight:700;
+            color:#f5f5f7;
+            margin-bottom:8px;
+        ">
+            Search
+        </div>
 
-    transition: 0.2s ease;
-}
-
-.feature-icon {
-    font-size: 22px;
-    margin-bottom: 12px;
-}
-
-.feature-title {
-    font-weight: 700;
-    margin-bottom: 6px;
-}
-
-.feature-text {
-    color: #888895;
-    font-size: 13px;
-    line-height: 1.5;
-}
-
-
-/* ---------- SUGGESTIONS ---------- */
-
-.section-label {
-    color: #777784;
-
-    font-size: 12px;
-
-    text-transform: uppercase;
-
-    letter-spacing: 1.5px;
-
-    font-weight: 700;
-
-    margin: 35px 0 14px 0;
-}
+        <div style="
+            font-size:13px;
+            line-height:1.6;
+            color:#92929f;
+        ">
+            Search across relevant Wikipedia
+            articles using natural language.
+        </div>
+    </div>
 
 
-/* ---------- CHAT ---------- */
-
-.user-message {
-    display: flex;
-    justify-content: flex-end;
-
-    margin: 25px 0;
-}
-
-.user-bubble {
-    max-width: 75%;
-
-    padding: 14px 18px;
-
-    border-radius: 18px 18px 5px 18px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #7c3aed,
-            #6366f1
+    <div style="
+        padding:24px;
+        border-radius:18px;
+        background:linear-gradient(
+            145deg,
+            rgba(255,255,255,0.055),
+            rgba(255,255,255,0.018)
         );
+        border:1px solid rgba(255,255,255,0.09);
+    ">
+        <div style="
+            font-size:25px;
+            margin-bottom:14px;
+        ">🧠</div>
 
-    color: white;
+        <div style="
+            font-size:17px;
+            font-weight:700;
+            color:#f5f5f7;
+            margin-bottom:8px;
+        ">
+            Understand
+        </div>
 
-    box-shadow:
-        0 8px 30px rgba(99,102,241,0.18);
-}
+        <div style="
+            font-size:13px;
+            line-height:1.6;
+            color:#92929f;
+        ">
+            AI evaluates search results and
+            selects the most relevant article.
+        </div>
+    </div>
 
-.ai-label {
-    display: flex;
-    align-items: center;
 
-    gap: 9px;
+    <div style="
+        padding:24px;
+        border-radius:18px;
+        background:linear-gradient(
+            145deg,
+            rgba(255,255,255,0.055),
+            rgba(255,255,255,0.018)
+        );
+        border:1px solid rgba(255,255,255,0.09);
+    ">
+        <div style="
+            font-size:25px;
+            margin-bottom:14px;
+        ">📚</div>
 
-    color: #b7a1ff;
+        <div style="
+            font-size:17px;
+            font-weight:700;
+            color:#f5f5f7;
+            margin-bottom:8px;
+        ">
+            Cite
+        </div>
 
-    font-size: 13px;
+        <div style="
+            font-size:13px;
+            line-height:1.6;
+            color:#92929f;
+        ">
+            Every research answer includes
+            its Wikipedia source.
+        </div>
+    </div>
 
-    font-weight: 700;
-
-    margin-bottom: 12px;
-}
-
-.ai-dot {
-    width: 8px;
-    height: 8px;
-
-    border-radius: 50%;
-
-    background: #a78bfa;
-
-    box-shadow:
-        0 0 12px #8b5cf6;
-}
-
-.answer-text {
-    color: #e5e5eb;
-
-    font-size: 16px;
-
-    line-height: 1.75;
-}
-
+</div>
+""")
 
 /* ---------- SOURCE ---------- */
 
