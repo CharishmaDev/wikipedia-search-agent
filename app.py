@@ -1,4 +1,6 @@
 import os
+import base64
+from html import escape
 
 import streamlit as st
 import wikipediaapi
@@ -64,6 +66,11 @@ st.markdown(
     .source-label { color:#8491a1; font-size:10px; letter-spacing:.13em; text-transform:uppercase; }
     .source-title { display:block; margin-top:6px; color:#eff5fd; font-size:14px; font-weight:600; text-decoration:none; }
     .source-url { color:#7aaeff; font-size:12px; text-decoration:none; }
+    div[data-testid="stExpander"] { margin-top:15px; border:1px solid #2d3540; border-left:2px solid #6c9eff; border-radius:0; background:rgba(10,14,20,.86); }
+    div[data-testid="stExpander"] summary { color:#dce7f6; font-size:13px; }
+    .message-label { margin-bottom:7px; color:#96a3b3; font-size:10px; letter-spacing:.13em; text-transform:uppercase; }
+    .copy-frame { display:block; width:118px; height:32px; margin-top:12px; border:0; }
+    .followup-label { margin:22px 0 8px; color:#8491a1; font-size:10px; letter-spacing:.13em; text-transform:uppercase; }
     div[data-testid="stChatInput"] { max-width:880px; margin:0 auto; }
     div[data-testid="stChatInput"] textarea { min-height:54px; border:1px solid #4d5867 !important; border-radius:2px !important; background:#080b10 !important; color:#eff4fa !important; }
     div[data-testid="stChatInput"] textarea::placeholder { color:#8d98a6; }
@@ -145,7 +152,11 @@ def build_conversation_context(messages):
     return "".join(f"{message['role'].capitalize()}: {message['content']}\n\n" for message in messages)
 
 
-def wikipedia_agent(question, messages):
+def wikipedia_agent(question, messages, on_progress=None):
+    def report(stage):
+        if on_progress:
+            on_progress(stage)
+
     conversation_context = build_conversation_context(messages)
     prompt = f"""You are WikiAgent, an AI-powered Wikipedia research assistant.
 Use the conversation history to understand follow-up questions. If factual Wikipedia information is needed, use the Wikipedia search tool. Do not invent facts.
@@ -153,13 +164,17 @@ Conversation history:
 {conversation_context}
 Current question:
 {question}"""
+    report("Understanding your question…")
     response = client.models.generate_content(model="gemini-3.1-flash-lite", contents=prompt, config=config)
     if not response.function_calls:
+        report("Generating an answer…")
         return {"answer": response.text, "source": None}
     call = response.function_calls[0]
+    report("Searching Wikipedia…")
     result = smart_wikipedia_search(call.args["query"])
     if result["status"] == "error":
         return {"answer": result["message"], "source": None}
+    report(f"Source found: {result['title']}")
     function_response = types.Part.from_function_response(name=call.name, response=result)
     final_prompt = f"""You are WikiAgent. Answer the user's question using the retrieved Wikipedia information.
 Conversation:
@@ -176,6 +191,7 @@ Rules:
 - Resolve pronouns such as he/she/they.
 - Do not invent facts.
 - If information is insufficient, say so."""
+    report("Generating a grounded answer…")
     final_response = client.models.generate_content(
         model="gemini-3.1-flash-lite",
         contents=[types.Content(role="user", parts=[types.Part.from_text(text=final_prompt)]), response.candidates[0].content, types.Content(role="user", parts=[function_response])],
@@ -186,6 +202,73 @@ Rules:
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+
+def queue_question(question):
+    st.session_state.pending_question = question
+    st.rerun()
+
+
+def render_copy_button(answer, key):
+    answer_attribute = escape(answer, quote=True)
+    document = f"""
+        <!doctype html>
+        <html><body>
+        <button id="copy-{key}" data-answer="{answer_attribute}" onclick="copyAnswer(this)">Copy answer</button>
+        <script>
+        async function copyAnswer(button) {{
+            try {{
+                await navigator.clipboard.writeText(button.dataset.answer);
+                button.textContent = "Copied";
+            }} catch (error) {{
+                button.textContent = "Copy unavailable";
+            }}
+        }}
+        </script>
+        <style>
+          body {{ margin: 0; background: transparent; }}
+          button {{ height: 31px; padding: 0 11px; border: 1px solid #343b45; border-radius: 3px;
+            background: #090c10; color: #aeb7c3; font: 12px sans-serif; cursor: pointer; }}
+          button:hover {{ border-color: #668dca; background: #111925; color: #fff; }}
+        </style>
+        </body></html>
+        """
+    source = base64.b64encode(document.encode("utf-8")).decode("ascii")
+    st.iframe(
+        f"data:text/html;base64,{source}",
+        height=34,
+    )
+
+
+def follow_up_questions(source):
+    if source:
+        return [
+            f"Tell me more about {source['title']}.",
+            f"What is the broader context for {source['title']}?",
+        ]
+    return [
+        "Can you explain that in more detail?",
+        "What is the most important context to know next?",
+    ]
+
+
+def render_answer(answer, source, key):
+    st.markdown('<div class="assistant-meta">◈ &nbsp; WikiAgent</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="assistant-answer">{escape(answer)}</div>', unsafe_allow_html=True)
+    render_copy_button(answer, key)
+    if source:
+        with st.expander(f"Primary source · {source['title']}", expanded=False):
+            st.caption("Retrieved from Wikipedia")
+            st.link_button("View source ↗", source["url"], use_container_width=True)
+
+
+def render_follow_up_suggestions(source, key):
+    st.markdown('<div class="followup-label">Continue researching</div>', unsafe_allow_html=True)
+    columns = st.columns(2)
+    for index, suggestion in enumerate(follow_up_questions(source)):
+        with columns[index]:
+            if st.button(suggestion, key=f"follow-up-{key}-{index}", use_container_width=True):
+                queue_question(suggestion)
 
 
 with st.sidebar:
@@ -246,32 +329,36 @@ if not st.session_state.messages:
     <article class="feature"><span class="feature-number">03</span><h3>Ground answers</h3><p>Every retrieved answer includes its primary source.</p></article></section>""", unsafe_allow_html=True)
 
 st.markdown('<main class="conversation">', unsafe_allow_html=True)
-for message in st.session_state.messages:
+for message_index, message in enumerate(st.session_state.messages):
     if message["role"] == "user":
-        st.markdown(f'<div class="message-user"><div class="user-bubble">{message["content"]}</div></div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="message-user"><div><div class="message-label">You</div>'
+            f'<div class="user-bubble">{escape(message["content"])}</div></div></div>',
+            unsafe_allow_html=True,
+        )
     else:
-        st.markdown('<div class="assistant-meta">◈ &nbsp; WikiAgent</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="assistant-answer">{message["content"]}</div>', unsafe_allow_html=True)
-        if message.get("source"):
-            source = message["source"]
-            st.markdown(f'<article class="source-card"><div class="source-label">Primary Wikipedia source</div><a class="source-title" href="{source["url"]}" target="_blank">{source["title"]} ↗</a><a class="source-url" href="{source["url"]}" target="_blank">Open article</a></article>', unsafe_allow_html=True)
+        render_answer(message["content"], message.get("source"), f"history-{message_index}")
+        if message_index == len(st.session_state.messages) - 1:
+            render_follow_up_suggestions(message.get("source"), f"history-{message_index}")
 st.markdown('</main>', unsafe_allow_html=True)
 
+queued_question = st.session_state.pop("pending_question", None)
 question = st.chat_input("Ask WikiAgent anything…")
 if example_question:
     question = example_question
+if queued_question:
+    question = queued_question
 if question:
-    st.markdown(f'<div class="conversation"><div class="message-user"><div class="user-bubble">{question}</div></div></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="conversation"><div class="message-user"><div><div class="message-label">You</div>'
+        f'<div class="user-bubble">{escape(question)}</div></div></div></div>',
+        unsafe_allow_html=True,
+    )
     with st.status("WikiAgent is researching…", expanded=True):
-        st.write("Understanding your question")
-        st.write("Searching and evaluating Wikipedia")
-        result = wikipedia_agent(question, st.session_state.messages.copy())
-        st.write("Preparing a grounded answer")
-    st.markdown('<div class="conversation"><div class="assistant-meta">◈ &nbsp; WikiAgent</div></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="conversation"><div class="assistant-answer">{result["answer"]}</div></div>', unsafe_allow_html=True)
-    if result["source"]:
-        source = result["source"]
-        st.markdown(f'<div class="conversation"><article class="source-card"><div class="source-label">Primary Wikipedia source</div><a class="source-title" href="{source["url"]}" target="_blank">{source["title"]} ↗</a><a class="source-url" href="{source["url"]}" target="_blank">Open article</a></article></div>', unsafe_allow_html=True)
+        result = wikipedia_agent(question, st.session_state.messages.copy(), st.write)
+    st.markdown('<div class="conversation">', unsafe_allow_html=True)
+    render_answer(result["answer"], result["source"], "current-answer")
+    st.markdown('</div>', unsafe_allow_html=True)
     st.session_state.messages.extend([
         {"role": "user", "content": question},
         {"role": "assistant", "content": result["answer"], "source": result["source"]},
